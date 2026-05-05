@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloakRoom Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Background atmosphere -->
+<div class="bg-grid"></div>
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<!-- App Shell -->
+<div class="app-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <span class="brand-icon">🎒</span>
+            <div>
+                <div class="brand-name">VIT</div>
+                <div class="brand-sub">Cloak room system</div>
+            </div>
+        </div>
+
+        <div class="sidebar-status-card" id="sidebarStatus">
+            <div class="status-dot disconnected" id="statusDot"></div>
+            <div>
+                <div class="status-label">Arduino</div>
+                <div class="status-value" id="statusText">Disconnected</div>
+            </div>
+        </div>
+
+        <div class="sidebar-card" id="fileStatusCard" style="display:none;">
+            <div class="file-icon">📁</div>
+            <div>
+                <div class="status-label">CSV File</div>
+                <div class="status-value" id="fileNameText">None</div>
+            </div>
+        </div>
+
+        <div class="sidebar-card record-count-card" id="recordCountCard" style="display:none;">
+            <div class="record-num" id="recordCount">0</div>
+            <div class="status-label">Records loaded</div>
+        </div>
+
+        <nav class="sidebar-nav" id="sidebarNav" style="display:none;">
+            <button class="nav-btn active" id="navDeposit" onclick="setMode('DEPOSIT')">
+                <span class="nav-icon">📥</span> Deposit
+            </button>
+            <button class="nav-btn" id="navWithdraw" onclick="setMode('WITHDRAW')">
+                <span class="nav-icon">📤</span> Withdraw
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="footer-btn" id="connectBtn" onclick="connectArduino()">
+                <span>⚡</span> Connect Arduino
+            </button>
+            <button class="footer-btn alt" id="fileBtn" onclick="pickFile()" style="display:none;">
+                <span>📂</span> Load CSV
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Step 1: Welcome -->
+        <section class="panel active" id="panelWelcome">
+            <div class="welcome-wrap">
+                <div class="welcome-badge">Cloak Room Management</div>
+                <h1 class="welcome-title">Your items,<br><em>always tracked.</em></h1>
+                <p class="welcome-desc">Connect your Arduino RFID reader to begin managing deposits and withdrawals with precision.</p>
+                <div class="steps-list">
+                    <div class="step-item active" id="step1">
+                        <div class="step-num">1</div>
+                        <div>
+                            <div class="step-title">Connect Arduino</div>
+                            <div class="step-desc">USB serial via Web Serial API</div>
+                        </div>
+                    </div>
+                    <div class="step-item" id="step2">
+                        <div class="step-num">2</div>
+                        <div>
+                            <div class="step-title">Load Inventory CSV</div>
+                            <div class="step-desc">Pick or create your database file</div>
+                        </div>
+                    </div>
+                    <div class="step-item" id="step3">
+                        <div class="step-num">3</div>
+                        <div>
+                            <div class="step-title">Scan & Manage</div>
+                            <div class="step-desc">Deposit or withdraw items by RFID</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="cta-btn" onclick="connectArduino()">
+                    <span>⚡</span> Connect Arduino to Begin
+                </button>
+            </div>
+        </section>
+
+        <!-- Step 2: File Setup -->
+        <section class="panel" id="panelFile">
+            <div class="panel-header">
+                <div class="panel-badge">Step 2 of 3</div>
+                <h2 class="panel-title">Load Inventory</h2>
+                <p class="panel-desc">Select an existing CSV database or create a new one to begin tracking.</p>
+            </div>
+            <div class="file-options">
+                <div class="file-option-card" onclick="pickFile()">
+                    <div class="file-option-icon">📂</div>
+                    <div class="file-option-title">Load Existing CSV</div>
+                    <div class="file-option-desc">Open your current inventory database</div>
+                </div>
+                <div class="file-option-card new" onclick="createNewFile()">
+                    <div class="file-option-icon">✨</div>
+                    <div class="file-option-title">Create New Database</div>
+                    <div class="file-option-desc">Start fresh with an empty inventory</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 3: Main Scan UI -->
+        <section class="panel" id="panelMain">
+
+            <!-- Scan Area -->
+            <div class="scan-zone" id="scanZone">
+                <div class="scan-ring" id="scanRing">
+                    <div class="scan-inner">
+                        <div class="scan-icon">📡</div>
+                    </div>
+                </div>
+                <div class="scan-label" id="scanLabel">Waiting for RFID scan…</div>
+                <div class="scan-uid" id="scanUID"></div>
+            </div>
+
+            <!-- Mode Tabs -->
+            <div class="mode-tabs" id="modeTabs">
+                <button class="mode-tab active" id="tabDep" onclick="setMode('DEPOSIT')">
+                    <span>📥</span> Deposit Mode
+                </button>
+                <button class="mode-tab" id="tabWit" onclick="setMode('WITHDRAW')">
+                    <span>📤</span> Withdraw Mode
+                </button>
+            </div>
+
+            <!-- Deposit Panel -->
+            <div class="action-card hidden" id="depositCard">
+                <div class="card-header">
+                    <h3 class="card-title">Deposit Items</h3>
+                    <div class="card-uid">Card: <span id="depUidDisplay">—</span></div>
+                </div>
+                <div class="items-grid">
+                    <div class="items-grid-header">
+                        <span>Item</span><span>Quantity</span><span>Room / Location</span>
+                    </div>
+                    <div class="item-row-field">
+                        <label>🛍️ Bags</label>
+                        <input type="number" id="dBags" value="0" min="0" class="qty-input">
+                        <input type="text" id="rBags" placeholder="e.g. A-12" class="room-input">
+                    </div>
+                    <div class="item-row-field">
+                        <label>🛏️ Beds</label>
+                        <input type="number" id="dBeds" value="0" min="0" class="qty-input">
+                        <input type="text" id="rBeds" placeholder="e.g. B-03" class="room-input">
+                    </div>
+                    <div class="item-row-field">
+                        <label>🪣 Buckets</label>
+                        <input type="number" id="dBuckets" value="0" min="0" class="qty-input">
+                        <input type="text" id="rBuckets" placeholder="e.g. C-01" class="room-input">
+                    </div>
+                    <div class="item-row-field">
+                        <label>📦 Cartons</label>
+                        <input type="number" id="dCartons" value="0" min="0" class="qty-input">
+                        <input type="text" id="rCartons" placeholder="e.g. D-07" class="room-input">
+                    </div>
+                    <div class="item-row-field">
+                        <label>🧳 Suitcases</label>
+                        <input type="number" id="dSuits" value="0" min="0" class="qty-input">
+                        <input type="text" id="rSuits" placeholder="e.g. E-05" class="room-input">
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="action-btn primary" onclick="saveDeposit()">
+                        <span>💾</span> Save to CSV
+                    </button>
+                    <button class="action-btn ghost" onclick="resetDepositForm()">
+                        <span>↩️</span> Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Withdraw Panel -->
+            <div class="action-card hidden" id="withdrawCard">
+                <div class="card-header">
+                    <h3 class="card-title">Withdraw Items</h3>
+                    <div class="card-uid">Card: <span id="witUidDisplay">—</span></div>
+                </div>
+
+                <!-- PIN verification -->
+                <div id="pinSection">
+                    <div class="pin-wrap">
+                        <div class="pin-icon">🔐</div>
+                        <p class="pin-desc">Enter your 4-digit PIN to access inventory</p>
+                        <div class="pin-input-wrap">
+                            <input type="password" id="pinInput" maxlength="4" placeholder="••••" class="pin-input" oninput="onPinInput()" onkeydown="if(event.key==='Enter') checkPin()">
+                            <button class="pin-toggle" onclick="togglePinVisibility()" title="Show/Hide PIN">👁</button>
+                        </div>
+                        <div class="pin-dots" id="pinDots">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                        <button class="action-btn primary" onclick="checkPin()">Verify PIN</button>
+                    </div>
+                </div>
+
+                <!-- Inventory display -->
+                <div id="inventorySection" class="hidden">
+                    <div class="inv-header">
+                        <span>Stored Items</span>
+                        <span class="inv-subtitle">Enter qty to collect</span>
+                    </div>
+                    <div id="inventoryList"></div>
+                    <div class="card-actions">
+                        <button class="action-btn primary" onclick="confirmWithdraw()">
+                            <span>📤</span> Collect & Update CSV
+                        </button>
+                        <button class="action-btn ghost" onclick="resetWithdraw()">
+                            <span>↩️</span> Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- PIN Display Modal -->
+    <div class="modal-overlay hidden" id="pinModal">
+        <div class="modal-box">
+            <div class="modal-icon">🔑</div>
+            <h3 class="modal-title">Deposit Registered!</h3>
+            <p class="modal-desc">Share this PIN with the customer to retrieve their items.</p>
+            <div class="pin-display" id="pinDisplay">—</div>
+            <button class="copy-btn" onclick="copyPin()">📋 Copy PIN</button>
+            <button class="action-btn ghost" onclick="closePinModal()" style="margin-top:10px;width:100%;">Close</button>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal-overlay hidden" id="confirmModal">
+        <div class="modal-box">
+            <div class="modal-icon">⚠️</div>
+            <h3 class="modal-title" id="confirmTitle">Are you sure?</h3>
+            <p class="modal-desc" id="confirmDesc">This action cannot be undone.</p>
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button class="action-btn primary" id="confirmYes">Confirm</button>
+                <button class="action-btn ghost" onclick="closeConfirm()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
